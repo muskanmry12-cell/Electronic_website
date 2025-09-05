@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Details</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="style.css">
+<style>
+.product-container{max-width:900px;margin:20px auto;background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);}
+.slider{position:relative;width:100%;height:400px;overflow:hidden;border-radius:8px;}
+.slider img{width:100%;height:100%;object-fit:cover;transition:0.5s;}
+.slider button{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:white;border:none;padding:10px;cursor:pointer;border-radius:50%;}
+#prev{left:10px;} #next{right:10px;}
+button.add-cart{margin-top:10px;padding:8px 12px;background:#0073e6;color:white;border:none;border-radius:5px;cursor:pointer;}
+button.add-cart:hover{background:#005bb5;}
+.specs{margin-top:15px;}
+.specs li{margin-bottom:5px;}
+</style>
+</head>
+<body class="bg-gray-100">
+
+<header class="bg-blue-600 text-white p-4 flex justify-between items-center">
+  <h1 class="text-2xl font-bold cursor-pointer" onclick="window.location.href='index.html'">Elec-Mart</h1>
+  <div class="flex gap-4 items-center">
+    <div class="cart cursor-pointer" onclick="window.location.href='cart.html'">🛒 <span id="cartCount">0</span></div>
+  </div>
+</header>
+
+<main>
+  <section id="productDetail" class="product-container">
+    <p>Loading product details...</p>
+  </section>
+</main>
+
+<script src="products.js"></script>
+<script>
+// ✅ Update cart count
+function updateCartCount(){
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  document.querySelector('.cart span').innerText = cart.length;
+}
+updateCartCount();
+
+// ✅ Get productId + category from URL
+const params = new URLSearchParams(window.location.search);
+const productId = params.get('id');
+const category = params.get('category');   // 👈 category bhi lo
+
+// ✅ Find product
+let product = null;
+if (category && productsData[category]) {
+  product = productsData[category].find(p => p.id === productId);
+} else {
+  // fallback agar category na aaye
+  Object.keys(productsData).forEach(cat=>{
+    productsData[cat].forEach(p=>{
+      if(p.id === productId){
+        product = p;
+      }
+    });
+  });
+}
+
+if(!product){
+  document.getElementById('productDetail').innerHTML = "<p>Product not found</p>";
+} else {
+  console.log("Loaded product:", product);
+  console.log("Images array:", product.images);
+
+  let currentIndex = 0;
+  const container = document.getElementById('productDetail');
+  container.innerHTML = `
+    <div class="slider">
+      <img src="${product.images && product.images.length > 0 ? product.images[0] : ''}" id="sliderImage" alt="${product.name}">
+      <button id="prev">&#10094;</button>
+      <button id="next">&#10095;</button>
+    </div>
+    <h2 class="text-2xl font-bold mt-4">${product.name}</h2>
+    <p class="text-green-600 text-xl font-semibold">₹${product.price}</p>
+    <p class="mt-2">${product.description}</p>
+    <ul class="specs mt-2"></ul>
+    <button class="add-cart">Add to Cart</button>
+  `;
+
+  // ✅ Specifications list
+  const specsList = container.querySelector('.specs');
+  if(product.specification){
+    Object.keys(product.specification).forEach(key=>{
+      const li = document.createElement('li');
+      li.innerText = `${key}: ${product.specification[key]}`;
+      specsList.appendChild(li);
+    });
+  }
+
+  // ✅ Image slider logic
+  const sliderImg = document.getElementById('sliderImage');
+  document.getElementById('prev').addEventListener('click', ()=>{
+    currentIndex = (currentIndex - 1 + product.images.length) % product.images.length;
+    sliderImg.src = product.images[currentIndex];
+  });
+  document.getElementById('next').addEventListener('click', ()=>{
+    currentIndex = (currentIndex + 1) % product.images.length;
+    sliderImg.src = product.images[currentIndex];
+  });
+
+  // ✅ Add to cart
+  container.querySelector('.add-cart').addEventListener('click', ()=>{
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    cart.push(product);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    alert(product.name + " added to cart");
+    updateCartCount();
+  });
+}
+</script>
+
+</body>
+</html>
