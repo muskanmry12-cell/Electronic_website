@@ -1,22 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Product Details</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="style.css">
-<style>
-.product-container{max-width:900px;margin:20px auto;background:#fff;padding:20px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);}
-.slider{position:relative;width:100%;height:400px;overflow:hidden;border-radius:8px;}
-.slider img{width:100%;height:100%;object-fit:cover;transition:0.5s;}
-.slider button{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:white;border:none;padding:10px;cursor:pointer;border-radius:50%;}
-#prev{left:10px;} #next{right:10px;}
-button.add-cart{margin-top:10px;padding:8px 12px;background:#0073e6;color:white;border:none;border-radius:5px;cursor:pointer;}
-button.add-cart:hover{background:#005bb5;}
-.specs{margin-top:15px;}
-.specs li{margin-bottom:5px;}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Details</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .slider {
+      position: relative;
+      width: 100%;
+      max-width: 500px;
+      height: 350px;
+      margin: 20px auto;
+      overflow: hidden;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+    }
+    .slider img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: none;
+    }
+    .slider img.active {
+      display: block;
+    }
+    .slider button {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0,0,0,0.5);
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      cursor: pointer;
+      border-radius: 50%;
+    }
+    .slider .prev { left: 10px; }
+    .slider .next { right: 10px; }
+  </style>
 </head>
 <body class="bg-gray-100">
 
@@ -35,83 +58,75 @@ button.add-cart:hover{background:#005bb5;}
 
 <script src="products.js"></script>
 <script>
-// ✅ Update cart count
-function updateCartCount(){
+function updateCartCount() {
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
   document.querySelector('.cart span').innerText = cart.length;
 }
 updateCartCount();
 
-// ✅ Get productId + category from URL
+// ✅ Get product ID from URL
 const params = new URLSearchParams(window.location.search);
-const productId = params.get('id');
-const category = params.get('category');   // 👈 category bhi lo
+const productId = params.get("id");
 
-// ✅ Find product
 let product = null;
-if (category && productsData[category]) {
-  product = productsData[category].find(p => p.id === productId);
-} else {
-  // fallback agar category na aaye
-  Object.keys(productsData).forEach(cat=>{
-    productsData[cat].forEach(p=>{
-      if(p.id === productId){
-        product = p;
-      }
-    });
+// Search product in all categories
+Object.keys(productsData).forEach(cat => {
+  productsData[cat].forEach(p => {
+    if (p.id === productId) {
+      product = p;
+    }
   });
-}
+});
 
-if(!product){
-  document.getElementById('productDetail').innerHTML = "<p>Product not found</p>";
+if (!product) {
+  document.getElementById("productDetail").innerHTML = "<h2>Product not found</h2>";
 } else {
-  console.log("Loaded product:", product);
-  console.log("Images array:", product.images);
-
-  let currentIndex = 0;
-  const container = document.getElementById('productDetail');
+  const container = document.getElementById("productDetail");
   container.innerHTML = `
     <div class="slider">
-      <img src="${product.images && product.images.length > 0 ? product.images[0] : ''}" id="sliderImage" alt="${product.name}">
-      <button id="prev">&#10094;</button>
-      <button id="next">&#10095;</button>
+      ${product.images.map((img, i) => `
+        <img src="${img}" class="${i === 0 ? 'active' : ''}" alt="${product.name}">
+      `).join("")}
+      <button class="prev">❮</button>
+      <button class="next">❯</button>
     </div>
     <h2 class="text-2xl font-bold mt-4">${product.name}</h2>
     <p class="text-green-600 text-xl font-semibold">₹${product.price}</p>
     <p class="mt-2">${product.description}</p>
-    <ul class="specs mt-2"></ul>
-    <button class="add-cart">Add to Cart</button>
+    <ul class="mt-2">
+  ${product.specification 
+    ? Object.keys(product.specification).map(key => `
+        <li><b>${key}:</b> ${product.specification[key]}</li>
+      `).join("") 
+    : ""}
+</ul>
+
+    <button class="mt-4 px-4 py-2 bg-blue-600 text-white rounded" onclick="addToCart()">Add to Cart</button>
   `;
 
-  // ✅ Specifications list
-  const specsList = container.querySelector('.specs');
-  if(product.specification){
-    Object.keys(product.specification).forEach(key=>{
-      const li = document.createElement('li');
-      li.innerText = `${key}: ${product.specification[key]}`;
-      specsList.appendChild(li);
-    });
-  }
-
-  // ✅ Image slider logic
-  const sliderImg = document.getElementById('sliderImage');
-  document.getElementById('prev').addEventListener('click', ()=>{
-    currentIndex = (currentIndex - 1 + product.images.length) % product.images.length;
-    sliderImg.src = product.images[currentIndex];
+  // ✅ Slider logic
+  const images = container.querySelectorAll(".slider img");
+  let currentIndex = 0;
+  const showImage = (index) => {
+    images.forEach((img, i) => img.classList.toggle("active", i === index));
+  };
+  container.querySelector(".prev").addEventListener("click", () => {
+    currentIndex = (currentIndex - 1 + images.length) % images.length;
+    showImage(currentIndex);
   });
-  document.getElementById('next').addEventListener('click', ()=>{
-    currentIndex = (currentIndex + 1) % product.images.length;
-    sliderImg.src = product.images[currentIndex];
+  container.querySelector(".next").addEventListener("click", () => {
+    currentIndex = (currentIndex + 1) % images.length;
+    showImage(currentIndex);
   });
 
-  // ✅ Add to cart
-  container.querySelector('.add-cart').addEventListener('click', ()=>{
-    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  // ✅ Add to cart function
+  window.addToCart = function() {
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
     cart.push(product);
-    localStorage.setItem('cart', JSON.stringify(cart));
-    alert(product.name + " added to cart");
+    localStorage.setItem("cart", JSON.stringify(cart));
+    alert(product.name + " added to cart!");
     updateCartCount();
-  });
+  };
 }
 </script>
 
